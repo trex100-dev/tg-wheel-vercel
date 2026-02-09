@@ -1,4 +1,4 @@
-const { sql, ensureSchema, ensureUser } = require('../../lib/db');
+const { sql, ensureSchema, ensureUser, withTransaction } = require('../../lib/db');
 const { wheelSectors, selectPrizeId } = require('../../lib/game');
 
 function uidGen() {
@@ -7,6 +7,7 @@ function uidGen() {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
   await ensureSchema();
 
   const { userId, spinKey } = req.body || {};
@@ -15,8 +16,8 @@ export default async function handler(req, res) {
   await ensureUser(userId);
 
   try {
-    const result = await sql.begin(async (tx) => {
-      // атомарно "съедаем" платёж
+    const result = await withTransaction(async (tx) => {
+      // атомарно помечаем оплату использованной
       const pay = await tx`
         UPDATE payments
         SET used=true

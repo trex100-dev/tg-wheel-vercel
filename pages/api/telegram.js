@@ -1,20 +1,19 @@
-const { sql, ensureSchema, ensureUser } = require('../../lib/db');
+const { sql, ensureSchema, ensureUser, withTransaction } = require('../../lib/db');
 const { tg } = require('../../lib/tg');
 const { isVip } = require('../../lib/env');
 const { addGuaranteesIfNeeded } = require('../../lib/game');
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-
   await ensureSchema();
 
-  // Telegram должен быстро получить 200
+  // Telegram всегда ждёт 200 быстро
   res.status(200).json({ ok: true });
 
   const update = req.body || {};
 
   try {
-    // 1) Stars pre_checkout -> ok:true
+    // 1) pre_checkout_query
     if (update.pre_checkout_query) {
       await tg('answerPreCheckoutQuery', {
         pre_checkout_query_id: update.pre_checkout_query.id,
@@ -23,7 +22,7 @@ export default async function handler(req, res) {
       return;
     }
 
-    // 2) successful_payment -> фиксируем оплату/траты/гаранты
+    // 2) successful_payment
     if (update.message && update.message.successful_payment) {
       const sp = update.message.successful_payment;
       const payload = sp.invoice_payload; // spin:userId:timestamp
@@ -33,6 +32,7 @@ export default async function handler(req, res) {
         const userId = String(parts[1]);
         await ensureUser(userId);
 
+        // idempotent insert (если уже вставлено — не считаем повторно)
         const ins = await sql`
           INSERT INTO payments(spin_key, user_id, paid, used, paid_at)
           VALUES(${payload}, ${userId}, true, false, now())
@@ -41,33 +41,32 @@ export default async function handler(req, res) {
         `;
 
         if (ins.rows.length > 0) {
-  const price = 50; // ВСЕГДА 50
+          const price = 50; // у тебя фикс 50
 
-  await sql.begin(async (tx) => {
-    await tx`
-      UPDATE users
-      SET total_spent = total_spent + ${price},
-          spins_count = spins_count + 1
-      WHERE user_id=${userId}
-    `;
+          await withTransaction(async (tx) => {
+            await tx`
+              UPDATE users
+              SET total_spent = total_spent + ${price},
+                  spins_count = spins_count + 1
+              WHERE user_id=${userId}
+            `;
 
-    if (isVip(userId)) {
-      await tx`UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=${userId}`;
-    } else {
-      await addGuaranteesIfNeeded(tx, userId);
-    }
-  });
-}
+            if (isVip(userId)) {
+              await tx`UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=${userId}`;
+            } else {
+              await addGuaranteesIfNeeded(tx, userId);
+            }
+          });
+        }
       }
       return;
     }
 
-    // 3) callback_query -> обработка кнопок админа const price 
+    // 3) callback_query (кнопки админа)
     if (update.callback_query) {
       const cb = update.callback_query;
       const data = String(cb.data || '');
       const parts = data.split(':');
-
       const action = parts[0];
       const userId = parts[1];
       const uid = parts[2];
