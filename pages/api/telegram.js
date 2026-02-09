@@ -41,7 +41,7 @@ export default async function handler(req, res) {
         `;
 
         if (ins.rows.length > 0) {
-          const price = 50; // у тебя фикс 50
+          const price = 1; // у тебя фикс 50
 
           await withTransaction(async (tx) => {
             await tx`
