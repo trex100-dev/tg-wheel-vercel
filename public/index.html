@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Барабан удачи</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- LOADER -->
+  <div id="loader" class="loader">
+    <div class="loader-card">
+      <div class="loader-title">Загрузка</div>
+      <div class="loader-subtitle" id="loader-subtitle">Подготавливаем мини‑апп…</div>
+
+      <div class="loader-bar">
+        <div class="loader-bar-fill" id="loader-bar-fill"></div>
+        <div class="loader-bar-glow"></div>
+      </div>
+
+      <div class="loader-meta">
+        <div class="loader-percent" id="loader-percent">0%</div>
+        <div class="loader-step" id="loader-step">assets</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="app" class="app app-hidden">
+    <div class="tabs">
+      <button class="tab active" data-tab="wheel">🎰 Барабан</button>
+      <button class="tab" data-tab="inventory">🎒 Инвентарь</button>
+    </div>
+
+    <div id="wheel-screen" class="screen active">
+      <h1 class="title">Крути и выигрывай</h1>
+
+      <div class="wheel-wrapper">
+        <div class="wheel-pointer"></div>
+        <canvas id="wheel-canvas" width="320" height="320"></canvas>
+      </div>
+
+      <button id="spin-btn" class="spin-btn">
+        <span class="spin-btn-text">⭐ Крутить</span>
+        <span class="spin-btn-price" id="spin-price"></span>
+      </button>
+
+      <div class="prizes-section">
+        <div class="prizes-title">Призы в барабане</div>
+        <div id="prizes-list" class="prizes-list"></div>
+      </div>
+
+      <!-- Попап приза (гифка) -->
+      <div id="result-popup" class="result-popup hidden">
+        <div class="popup-overlay"></div>
+        <div class="result-content">
+          <div class="result-gif-container" id="result-gif-container"></div>
+          <div class="result-label">Твой приз</div>
+          <div class="result-name" id="result-name"></div>
+          <button class="result-close" id="result-close">Забрать</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="inventory-screen" class="screen">
+      <h1 class="title">Мой инвентарь</h1>
+      <div id="inventory-list" class="inventory-list">
+        <p class="empty-text">Пока пусто — крути барабан!</p>
+      </div>
+    </div>
+
+    <!-- Модалка вывода -->
+    <div id="withdraw-modal" class="modal hidden">
+      <div class="popup-overlay" id="withdraw-overlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title">Вывод приза</div>
+          <button class="modal-close-btn" id="modal-close-btn">✕</button>
+        </div>
+
+        <div class="modal-prize-preview">
+          <span class="modal-prize-icon" id="modal-prize-icon"></span>
+          <div class="modal-prize-name" id="modal-prize-name"></div>
+        </div>
+
+        <div class="modal-form">
+          <label class="form-label" for="withdraw-username">Твой юзернейм в Telegram</label>
+          <div class="input-wrapper">
+            <span class="input-prefix">@</span>
+            <input
+              type="text"
+              id="withdraw-username"
+              class="form-input"
+              placeholder="username"
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
+            />
+          </div>
+          <div class="form-hint">Мы свяжемся с тобой для передачи приза</div>
+          <div class="form-error hidden" id="form-error">Введи свой юзернейм</div>
+        </div>
+
+        <button class="modal-submit-btn" id="modal-submit-btn">📤 Отправить заявку</button>
+      </div>
+    </div>
+
+    <!-- Уведомление успеха -->
+    <div id="success-toast" class="success-toast hidden">
+      <div class="popup-overlay" id="success-overlay"></div>
+      <div class="success-toast-content">
+        <div class="success-toast-circle">
+          <svg class="success-checkmark" viewBox="0 0 52 52">
+            <circle class="success-checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="success-checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+        </div>
+        <div class="success-toast-title">Вывод создан!</div>
+        <div class="success-toast-text" id="success-toast-text">Приз скоро поступит на ваш аккаунт. Ожидайте!</div>
+        <div class="success-toast-prize" id="success-toast-prize"></div>
+        <button class="success-toast-btn" id="success-toast-btn">Отлично!</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
