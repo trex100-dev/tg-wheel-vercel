@@ -41,28 +41,28 @@ export default async function handler(req, res) {
         `;
 
         if (ins.rows.length > 0) {
-          const price = parseInt(process.env.SPIN_PRICE || '1', 10) || 1;
+  const price = 50; // ВСЕГДА 50
 
-          await sql.begin(async (tx) => {
-            await tx`
-              UPDATE users
-              SET total_spent = total_spent + ${price},
-                  spins_count = spins_count + 1
-              WHERE user_id=${userId}
-            `;
+  await sql.begin(async (tx) => {
+    await tx`
+      UPDATE users
+      SET total_spent = total_spent + ${price},
+          spins_count = spins_count + 1
+      WHERE user_id=${userId}
+    `;
 
-            if (isVip(userId)) {
-              await tx`UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=${userId}`;
-            } else {
-              await addGuaranteesIfNeeded(tx, userId);
-            }
-          });
-        }
+    if (isVip(userId)) {
+      await tx`UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=${userId}`;
+    } else {
+      await addGuaranteesIfNeeded(tx, userId);
+    }
+  });
+}
       }
       return;
     }
 
-    // 3) callback_query -> обработка кнопок админа
+    // 3) callback_query -> обработка кнопок админа const price 
     if (update.callback_query) {
       const cb = update.callback_query;
       const data = String(cb.data || '');

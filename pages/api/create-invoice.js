@@ -12,14 +12,14 @@ export default async function handler(req, res) {
   await ensureUser(userId);
 
   const payload = `spin:${userId}:${Date.now()}`;
-  const price = parseInt(process.env.SPIN_PRICE || '1', 10) || 1;
+  const price = 50; // ВСЕГДА 50
 
   try {
     const url = await tg('createInvoiceLink', {
       title: '🎰 Крутка барабана',
       description: 'Один спин барабана удачи',
       payload,
-      provider_token: "", // ВАЖНО для Stars (XTR)
+      provider_token: "", // Stars
       currency: 'XTR',
       prices: [{ label: 'Крутка', amount: price }]
     });
