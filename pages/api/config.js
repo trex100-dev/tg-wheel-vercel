@@ -1,3 +1,3 @@
 export default function handler(req, res) {
-  res.status(200).json({ spinPrice: 50 });
+  res.status(200).json({ spinPrice: 1 });
 }
