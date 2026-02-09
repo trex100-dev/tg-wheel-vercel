@@ -3,33 +3,36 @@ const { tg } = require('../../lib/tg');
 const { isVip } = require('../../lib/env');
 const { addGuaranteesIfNeeded } = require('../../lib/game');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   await ensureSchema();
 
+  // Telegram должен быстро получить 200
+  res.status(200).json({ ok: true });
+
   const update = req.body || {};
 
   try {
-    // 1) Stars pre_checkout
+    // 1) Stars pre_checkout -> ok:true
     if (update.pre_checkout_query) {
       await tg('answerPreCheckoutQuery', {
         pre_checkout_query_id: update.pre_checkout_query.id,
         ok: true
       });
-      return res.status(200).json({ ok: true });
+      return;
     }
 
-    // 2) successful_payment
+    // 2) successful_payment -> фиксируем оплату/траты/гаранты
     if (update.message && update.message.successful_payment) {
       const sp = update.message.successful_payment;
       const payload = sp.invoice_payload; // spin:userId:timestamp
       const parts = String(payload || '').split(':');
+
       if (parts[0] === 'spin' && parts[1]) {
         const userId = String(parts[1]);
         await ensureUser(userId);
 
-        // idempotent insert
         const ins = await sql`
           INSERT INTO payments(spin_key, user_id, paid, used, paid_at)
           VALUES(${payload}, ${userId}, true, false, now())
@@ -49,7 +52,6 @@ module.exports = async function handler(req, res) {
             `;
 
             if (isVip(userId)) {
-              // VIP: гарантов нет
               await tx`UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=${userId}`;
             } else {
               await addGuaranteesIfNeeded(tx, userId);
@@ -57,22 +59,22 @@ module.exports = async function handler(req, res) {
           });
         }
       }
-
-      return res.status(200).json({ ok: true });
+      return;
     }
 
-    // 3) callback_query (админ-кнопки)
+    // 3) callback_query -> обработка кнопок админа
     if (update.callback_query) {
       const cb = update.callback_query;
       const data = String(cb.data || '');
       const parts = data.split(':');
+
       const action = parts[0];
       const userId = parts[1];
       const uid = parts[2];
 
       if (!userId || !uid) {
         await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Ошибка' });
-        return res.status(200).json({ ok: true });
+        return;
       }
 
       const item = await sql`
@@ -81,17 +83,18 @@ module.exports = async function handler(req, res) {
 
       if (item.rows.length === 0) {
         await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Приз не найден' });
-        return res.status(200).json({ ok: true });
+        return;
       }
 
       const it = item.rows[0];
       if (it.status !== 'pending') {
         await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Уже обработано' });
-        return res.status(200).json({ ok: true });
+        return;
       }
 
       if (action === 'withdraw_done') {
         await sql`UPDATE inventory SET status='completed', completed_at=now() WHERE uid=${String(uid)}`;
+
         await tg('editMessageText', {
           chat_id: cb.message.chat.id,
           message_id: cb.message.message_id,
@@ -104,9 +107,14 @@ module.exports = async function handler(req, res) {
             '✅ <b>ВЫВЕДЕНО</b>\n' +
             '🔑 <code>' + it.uid + '</code>'
         });
+
         await tg('answerCallbackQuery', { callback_query_id: cb.id, text: '✅ Выведено' });
-      } else if (action === 'withdraw_reject') {
+        return;
+      }
+
+      if (action === 'withdraw_reject') {
         await sql`UPDATE inventory SET status='rejected', rejected_at=now() WHERE uid=${String(uid)}`;
+
         await tg('editMessageText', {
           chat_id: cb.message.chat.id,
           message_id: cb.message.message_id,
@@ -119,17 +127,15 @@ module.exports = async function handler(req, res) {
             '❌ <b>ОТКАЗАНО</b>\n' +
             '🔑 <code>' + it.uid + '</code>'
         });
+
         await tg('answerCallbackQuery', { callback_query_id: cb.id, text: '❌ Отказано' });
-      } else {
-        await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Неизвестно' });
+        return;
       }
 
-      return res.status(200).json({ ok: true });
+      await tg('answerCallbackQuery', { callback_query_id: cb.id, text: 'Неизвестно' });
+      return;
     }
-
-    return res.status(200).json({ ok: true });
   } catch (e) {
-    // Telegram всё равно должен получить 200, иначе будут ретраи
-    return res.status(200).json({ ok: true });
+    console.error('telegram webhook error:', e.message);
   }
-};
+}

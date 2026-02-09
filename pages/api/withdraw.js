@@ -1,7 +1,7 @@
 const { sql, ensureSchema, ensureUser } = require('../../lib/db');
 const { tg } = require('../../lib/tg');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   await ensureSchema();
 
@@ -29,7 +29,7 @@ module.exports = async function handler(req, res) {
     WHERE uid=${String(itemUid)}
   `;
 
-  // сообщение в админ чат
+  // сообщение в админ чат с кнопками
   try {
     await tg('sendMessage', {
       chat_id: process.env.ADMIN_CHAT_ID,
@@ -48,7 +48,9 @@ module.exports = async function handler(req, res) {
         ]]
       }
     });
-  } catch (e) {}
+  } catch (e) {
+    console.error('sendMessage admin error:', e.message);
+  }
 
-  res.status(200).json({ success: true });
-};
+  return res.status(200).json({ success: true });
+}

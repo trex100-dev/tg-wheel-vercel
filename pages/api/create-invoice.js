@@ -1,7 +1,7 @@
 const { ensureSchema, ensureUser } = require('../../lib/db');
 const { tg } = require('../../lib/tg');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
   await ensureSchema();
@@ -19,15 +19,14 @@ module.exports = async function handler(req, res) {
       title: '🎰 Крутка барабана',
       description: 'Один спин барабана удачи',
       payload,
-      provider_token: "",     // <-- ВАЖНО для Stars (XTR)
+      provider_token: "", // ВАЖНО для Stars (XTR)
       currency: 'XTR',
       prices: [{ label: 'Крутка', amount: price }]
     });
 
-    res.status(200).json({ invoiceUrl: url, spinKey: payload });
+    return res.status(200).json({ invoiceUrl: url, spinKey: payload });
   } catch (e) {
-    // чтобы увидеть причину в логах Vercel
     console.error('createInvoiceLink error:', e.message);
-    res.status(500).json({ error: 'invoice error', details: e.message });
+    return res.status(500).json({ error: 'invoice error', details: e.message });
   }
-};
+}

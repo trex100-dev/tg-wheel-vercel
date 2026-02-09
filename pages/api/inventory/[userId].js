@@ -1,6 +1,6 @@
 const { sql, ensureSchema, ensureUser } = require('../../../lib/db');
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   await ensureSchema();
 
   const userId = req.query.userId;
@@ -20,5 +20,5 @@ module.exports = async function handler(req, res) {
     ORDER BY won_at ASC
   `;
 
-  res.status(200).json({ inventory: rows.rows });
-};
+  return res.status(200).json({ inventory: rows.rows });
+}

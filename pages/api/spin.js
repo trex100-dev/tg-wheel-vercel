@@ -5,7 +5,7 @@ function uidGen() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   await ensureSchema();
 
@@ -16,7 +16,7 @@ module.exports = async function handler(req, res) {
 
   try {
     const result = await sql.begin(async (tx) => {
-      // atomic consume payment
+      // атомарно "съедаем" платёж
       const pay = await tx`
         UPDATE payments
         SET used=true
@@ -28,12 +28,11 @@ module.exports = async function handler(req, res) {
       `;
 
       if (pay.rows.length === 0) {
-        // либо не оплачено, либо уже использовано
-        return { err: 'not_ready' };
+        return { err: 'not_ready' }; // фронт будет ретраить
       }
 
       const wonId = await selectPrizeId(tx, userId);
-      const segmentIndex = wheelSectors.findIndex(p => p.id === wonId);
+      const segmentIndex = wheelSectors.findIndex((p) => p.id === wonId);
       const prize = wheelSectors[segmentIndex >= 0 ? segmentIndex : 0];
 
       const uid = uidGen();
@@ -51,12 +50,12 @@ module.exports = async function handler(req, res) {
     });
 
     if (result.err === 'not_ready') {
-      // фронт будет ретраить (как у тебя)
       return res.status(402).json({ error: 'not paid yet' });
     }
 
     return res.status(200).json(result);
   } catch (e) {
+    console.error('spin error:', e.message);
     return res.status(500).json({ error: 'spin error' });
   }
-};
+}
