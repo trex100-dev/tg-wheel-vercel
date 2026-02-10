@@ -6,11 +6,13 @@ const { addGuaranteesIfNeeded } = require('../../lib/game');
 export default async function handler(req, res) {
   await ensureSchema();
 
+  // Telegram всегда ждёт 200 быстро
   res.status(200).json({ ok: true });
 
   const update = req.body || {};
 
   try {
+    // 1) pre_checkout_query
     if (update.pre_checkout_query) {
       await tg('answerPreCheckoutQuery', {
         pre_checkout_query_id: update.pre_checkout_query.id,
@@ -19,6 +21,7 @@ export default async function handler(req, res) {
       return;
     }
 
+    // 2) successful_payment
     if (update.message && update.message.successful_payment) {
       const sp = update.message.successful_payment;
       const payload = sp.invoice_payload;
@@ -28,6 +31,7 @@ export default async function handler(req, res) {
         const userId = String(parts[1]);
         await ensureUser(userId);
 
+        // idempotent insert (если уже вставлено — не считаем повторно)
         const ins = await sql`
           INSERT INTO payments(spin_key, user_id, paid, used, paid_at)
           VALUES(${payload}, ${userId}, true, false, now())
@@ -36,7 +40,6 @@ export default async function handler(req, res) {
         `;
 
         if (ins.rows.length > 0) {
-          // Теперь берем цену из ENV
           const price = parseInt(process.env.SPIN_PRICE || '1', 10) || 1;
 
           await withTransaction(async (tx) => {
@@ -62,6 +65,7 @@ export default async function handler(req, res) {
       return;
     }
 
+    // 3) callback_query (кнопки админа)
     if (update.callback_query) {
       const cb = update.callback_query;
       const data = String(cb.data || '');
