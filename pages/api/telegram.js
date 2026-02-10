@@ -4,16 +4,13 @@ const { isVip } = require('../../lib/env');
 const { addGuaranteesIfNeeded } = require('../../lib/game');
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
   await ensureSchema();
 
-  // Telegram всегда ждёт 200 быстро
   res.status(200).json({ ok: true });
 
   const update = req.body || {};
 
   try {
-    // 1) pre_checkout_query
     if (update.pre_checkout_query) {
       await tg('answerPreCheckoutQuery', {
         pre_checkout_query_id: update.pre_checkout_query.id,
@@ -22,17 +19,15 @@ export default async function handler(req, res) {
       return;
     }
 
-    // 2) successful_payment
     if (update.message && update.message.successful_payment) {
       const sp = update.message.successful_payment;
-      const payload = sp.invoice_payload; // spin:userId:timestamp
+      const payload = sp.invoice_payload;
       const parts = String(payload || '').split(':');
 
       if (parts[0] === 'spin' && parts[1]) {
         const userId = String(parts[1]);
         await ensureUser(userId);
 
-        // idempotent insert (если уже вставлено — не считаем повторно)
         const ins = await sql`
           INSERT INTO payments(spin_key, user_id, paid, used, paid_at)
           VALUES(${payload}, ${userId}, true, false, now())
@@ -41,18 +36,23 @@ export default async function handler(req, res) {
         `;
 
         if (ins.rows.length > 0) {
-          const price = 1; // у тебя фикс 50
+          // Теперь берем цену из ENV
+          const price = parseInt(process.env.SPIN_PRICE || '1', 10) || 1;
 
           await withTransaction(async (tx) => {
-            await tx`
-              UPDATE users
-              SET total_spent = total_spent + ${price},
-                  spins_count = spins_count + 1
-              WHERE user_id=${userId}
-            `;
+            await tx(
+              `UPDATE users
+               SET total_spent = total_spent + $1,
+                   spins_count = spins_count + 1
+               WHERE user_id=$2`,
+              [price, userId]
+            );
 
             if (isVip(userId)) {
-              await tx`UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=${userId}`;
+              await tx(
+                `UPDATE user_progress SET guarantee_queue='[]'::jsonb WHERE user_id=$1`,
+                [userId]
+              );
             } else {
               await addGuaranteesIfNeeded(tx, userId);
             }
@@ -62,11 +62,11 @@ export default async function handler(req, res) {
       return;
     }
 
-    // 3) callback_query (кнопки админа)
     if (update.callback_query) {
       const cb = update.callback_query;
       const data = String(cb.data || '');
       const parts = data.split(':');
+
       const action = parts[0];
       const userId = parts[1];
       const uid = parts[2];

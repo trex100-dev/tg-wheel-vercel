@@ -7,7 +7,6 @@ function uidGen() {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-
   await ensureSchema();
 
   const { userId, spinKey } = req.body || {};
@@ -18,31 +17,30 @@ export default async function handler(req, res) {
   try {
     const result = await withTransaction(async (tx) => {
       // атомарно помечаем оплату использованной
-      const pay = await tx`
-        UPDATE payments
-        SET used=true
-        WHERE spin_key=${String(spinKey)}
-          AND user_id=${String(userId)}
-          AND paid=true
-          AND used=false
-        RETURNING spin_key
-      `;
+      const pay = await tx(
+        `UPDATE payments
+         SET used=true
+         WHERE spin_key=$1 AND user_id=$2 AND paid=true AND used=false
+         RETURNING spin_key`,
+        [String(spinKey), String(userId)]
+      );
 
       if (pay.rows.length === 0) {
         return { err: 'not_ready' }; // фронт будет ретраить
       }
 
-      const wonId = await selectPrizeId(tx, userId);
+      const wonId = await selectPrizeId(tx, userId); // передаём tx
       const segmentIndex = wheelSectors.findIndex((p) => p.id === wonId);
       const prize = wheelSectors[segmentIndex >= 0 ? segmentIndex : 0];
 
       const uid = uidGen();
       const wonAt = new Date().toISOString();
 
-      await tx`
-        INSERT INTO inventory(uid, user_id, prize_id, prize_name, won_at, status)
-        VALUES(${uid}, ${String(userId)}, ${prize.id}, ${prize.name}, ${wonAt}, 'inventory')
-      `;
+      await tx(
+        `INSERT INTO inventory(uid, user_id, prize_id, prize_name, won_at, status)
+         VALUES($1, $2, $3, $4, $5, 'inventory')`,
+        [uid, String(userId), prize.id, prize.name, wonAt]
+      );
 
       return {
         prize: { id: prize.id, name: prize.name, uid, wonAt, status: 'inventory' },
