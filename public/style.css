@@ -358,7 +358,7 @@ body {
   to { transform: scale(1); opacity: 1; }
 }
 
-.result-gif-container {
+.result-img-container { /* Переименовал с gif на img */
   width: 130px;
   height: 130px;
   margin: 0 auto 16px;
@@ -367,12 +367,12 @@ body {
   justify-content: center;
   background: transparent;
 }
-.result-gif-container img {
+.result-img-container img {
   width: 130px;
   height: 130px;
   object-fit: contain;
   background: transparent;
-  mix-blend-mode: screen;
+  /* mix-blend-mode: screen; */ /* Удалено, если PNG с прозрачным фоном */
 }
 
 .result-label {

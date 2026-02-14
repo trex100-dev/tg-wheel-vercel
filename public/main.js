@@ -57,12 +57,12 @@ if (tg) {
 // ================= Config + prizes =================
 // Порядок = порядок секторов, должен совпадать с wheelSectors на сервере
 var PRIZES = [
-  { id:'prize_1', name:'Медведь', image:'/img/bearstab.png', gif:'/img/beargifka.gif', color:'#27272a' },
-  { id:'prize_2', name:'Роза',    image:'/img/rosestab.png', gif:'/img/rosegifka.gif', color:'#292524' },
-  { id:'prize_3', name:'Леденец', image:'/img/lolstab.png', gif:'/img/lolgifka.gif', color:'#172554' },
-  { id:'prize_4', name:'Сига',    image:'/img/sistab.png', gif:'/img/sigagifka.gif', color:'#2e1065' },
-  { id:'prize_5', name:'Папаха',  image:'/img/papahastab.png', gif:'/img/papahagifka.gif', color:'#3a2600' },
-  { id:'prize_6', name:'Кнопка',  image:'/img/buttonstab.png', gif:'/img/buttongifka.gif', color:'#1f2937' }
+  { id:'prize_1', name:'Медведь', image:'/img/prize1.png', color:'#27272a' },
+  { id:'prize_2', name:'Роза',    image:'/img/prize2.png', color:'#292524' },
+  { id:'prize_3', name:'Леденец', image:'/img/prize3.png', color:'#172554' },
+  { id:'prize_4', name:'Сига',    image:'/img/prize4.png', color:'#2e1065' },
+  { id:'prize_5', name:'Папаха',  image:'/img/prize5.png', color:'#3a2600' },
+  { id:'prize_6', name:'Кнопка',  image:'/img/prize6.png', color:'#1f2937' }
 ];
 
 var NUM = PRIZES.length;
@@ -111,16 +111,8 @@ function preloadAllAssets() {
     })(i);
   }
 
-  // GIFs
-  setLoaderSubtitle('Подгружаем анимации…');
-  for (var j = 0; j < PRIZES.length; j++) {
-    (function(idx2){
-      var finishGif = registerTask('gifs');
-      tasks.push(
-        preloadImage(PRIZES[idx2].gif).finally(function(){ finishGif(); })
-      );
-    })(j);
-  }
+  // GIFs: этот блок удален, т.к. гифки больше не используются
+  // Если у PRIZES.gif было бы поле, то preloadImage(PRIZES[idx2].gif)
 
   // DOM
   var finishDom = registerTask('dom');
@@ -174,7 +166,7 @@ var R = CSS_SIZE / 2 - 4;
 var currentAngle = 0;
 var spinning = false;
 
-// idle (медленно)
+// idle (очень медленно)
 var idleSpinning = false;
 var idleSpeed = 0.0008; // ~1 оборот ~ 130 сек
 var idleRaf = null;
@@ -302,11 +294,11 @@ function drawWheel(angle) {
   ctx.restore();
 }
 
-// строгая остановка в центр сектора segIdx
+// стоп строго в центр нужного сегмента
 function animateSpin(segIdx) {
   return new Promise(function(resolve) {
     var DUR = 4000;
-    var FULL = 6;
+    var FULL = 6; // полных оборотов
 
     var desired = (2 * Math.PI - (segIdx + 0.5) * ARC);
     desired = ((desired % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
@@ -350,7 +342,7 @@ function animateSpin(segIdx) {
   });
 }
 
-// ================= Payment + Spin =================
+// ================= Spin payment flow =================
 var spinBtn = document.getElementById('spin-btn');
 var currentSpinKey = null;
 
@@ -431,11 +423,11 @@ function resetSpinBtn() {
 
 // ================= Result popup =================
 function showResult(prize) {
-  var gc = document.getElementById('result-gif-container');
+  var gc = document.getElementById('result-img-container'); // Переименован контейнер
   var pd = findPrize(prize.id);
 
-  if (pd && pd.gif) gc.innerHTML = '<img src="' + pd.gif + '?t=' + Date.now() + '" alt="">';
-  else if (pd && pd.image) gc.innerHTML = '<img src="' + pd.image + '" alt="">';
+  // Используем image, т.к. гифки больше нет
+  if (pd && pd.image) gc.innerHTML = '<img src="' + pd.image + '" alt="">';
   else gc.innerHTML = '🎁';
 
   document.getElementById('result-name').textContent = prize.name;
@@ -444,7 +436,7 @@ function showResult(prize) {
 
 document.getElementById('result-close').addEventListener('click', function() {
   document.getElementById('result-popup').classList.add('hidden');
-  document.getElementById('result-gif-container').innerHTML = '';
+  document.getElementById('result-img-container').innerHTML = ''; // Очищаем контейнер
 });
 
 // ================= Tabs =================
