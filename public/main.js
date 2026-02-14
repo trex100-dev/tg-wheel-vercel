@@ -111,9 +111,6 @@ function preloadAllAssets() {
     })(i);
   }
 
-  // GIFs: этот блок удален, т.к. гифки больше не используются
-  // Если у PRIZES.gif было бы поле, то preloadImage(PRIZES[idx2].gif)
-
   // DOM
   var finishDom = registerTask('dom');
   tasks.push(
@@ -380,11 +377,20 @@ spinBtn.addEventListener('click', function() {
 });
 
 function waitAndSpin(key, attempt) {
-  if (attempt > 25) {
-    alert('Платёж не подтверждён');
+  // Увеличиваем попытки и даём больше времени на обработку оплаты Telegram
+  if (attempt > 40) { // Было 25, теперь 40
+    alert('Платёж не подтверждён. Попробуйте еще раз.');
     resetSpinBtn();
     return;
   }
+
+  // Добавляем начальную задержку 1.5 секунды перед первым запросом
+  // (только если это первая попытка)
+  if (attempt === 0) {
+    setTimeout(function() { waitAndSpin(key, attempt + 1); }, 1500);
+    return;
+  }
+
 
   fetch('/api/spin', {
     method: 'POST',
@@ -393,7 +399,7 @@ function waitAndSpin(key, attempt) {
   })
     .then(function(r){
       if (r.status === 402) {
-        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 500);
+        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750); // <-- БЫЛО 500, ТЕПЕРЬ 750ms
         return null;
       }
       return r.json();
@@ -409,7 +415,7 @@ function waitAndSpin(key, attempt) {
       resetSpinBtn();
     })
     .catch(function(){
-      setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 500);
+      setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750); // <-- БЫЛО 500, ТЕПЕРЬ 750ms
     });
 }
 
@@ -423,10 +429,9 @@ function resetSpinBtn() {
 
 // ================= Result popup =================
 function showResult(prize) {
-  var gc = document.getElementById('result-img-container'); // Переименован контейнер
+  var gc = document.getElementById('result-img-container'); // Название контейнера оставим, просто будет PNG
   var pd = findPrize(prize.id);
 
-  // Используем image, т.к. гифки больше нет
   if (pd && pd.image) gc.innerHTML = '<img src="' + pd.image + '" alt="">';
   else gc.innerHTML = '🎁';
 
