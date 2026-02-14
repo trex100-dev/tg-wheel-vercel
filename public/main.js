@@ -371,7 +371,9 @@ spinBtn.addEventListener('click', function() {
         }
       });
     })
-    .catch(function(){
+    .catch(function(err){ // Добавлен catch для ошибок create-invoice
+      console.error('Error creating invoice:', err);
+      alert('Ошибка создания инвойса. Проверьте консоль.');
       resetSpinBtn();
     });
 });
@@ -392,15 +394,24 @@ function waitAndSpin(key, attempt) {
   }
 
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // Таймаут 10 секунд на один запрос
+
   fetch('/api/spin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ userId: userId, spinKey: key })
+    body: JSON.stringify({ userId: userId, spinKey: key }),
+    signal: controller.signal // Привязываем AbortController к запросу
   })
     .then(function(r){
+      clearTimeout(timeoutId); // Очищаем таймаут после получения ответа
       if (r.status === 402) {
         setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750); // <-- БЫЛО 500, ТЕПЕРЬ 750ms
         return null;
+      }
+      if (!r.ok) { // Если не 402, но и не 200
+        console.error('API SPIN returned non-OK status:', r.status);
+        throw new Error('Server error: ' + r.status);
       }
       return r.json();
     })
@@ -414,7 +425,15 @@ function waitAndSpin(key, attempt) {
       showResult(data.prize);
       resetSpinBtn();
     })
-    .catch(function(){
+    .catch(function(err){
+      clearTimeout(timeoutId); // Очищаем таймаут и при ошибке
+      if (err.name === 'AbortError') {
+          console.warn('Request timed out, retrying...');
+      } else {
+          console.error('Fetch error for /api/spin:', err);
+          // Можно добавить alert() для пользователя, если ошибка критична
+          // alert('Произошла ошибка при получении результата. Попробуйте снова.');
+      }
       setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750); // <-- БЫЛО 500, ТЕПЕРЬ 750ms
     });
 }
