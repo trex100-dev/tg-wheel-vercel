@@ -379,17 +379,19 @@ spinBtn.addEventListener('click', function() {
 });
 
 function waitAndSpin(key, attempt) {
-  if (attempt > 40) { // Увеличено до 40 попыток
-    alert('Платёж не подтверждён. Попробуйте еще раз.');
+  // Увеличиваем лимит попыток на случай экстремальных задержек
+  if (attempt > 40) { // 40 попыток * 750ms = 30 секунд ожидания
+    console.error('Frontend: Exceeded maximum attempts to confirm payment and spin result.');
+    alert('Не удалось подтвердить платёж. Пожалуйста, проверьте инвентарь или попробуйте еще раз.');
     resetSpinBtn();
     return;
   }
 
-  // Добавляем начальную задержку 1.5 секунды перед первым запросом
-  // (только если это первая попытка)
+  // Начальная задержка перед первым запросом /api/spin
+  // Даем бэкенду время обработать successful_payment
   if (attempt === 0) {
     console.log('Frontend: Initial delay before first /api/spin request...');
-    setTimeout(function() { waitAndSpin(key, attempt + 1); }, 1500);
+    setTimeout(function() { waitAndSpin(key, attempt + 1); }, 2000); // Задержка 2 секунды
     return;
   }
 
@@ -407,9 +409,10 @@ function waitAndSpin(key, attempt) {
     .then(function(response){
       clearTimeout(timeoutId); // Очищаем таймаут после получения ответа
 
-      if (!response.ok && response.status === 0) { // fetch aborted (e.g. network lost or explicit abort)
-        console.warn('Frontend: /api/spin request aborted (status 0), retrying...');
-        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 1000); // Быстрый повтор после AbortError
+      // Если запрос был отменен (например, из-за таймаута на fetch)
+      if (!response.ok && response.status === 0) { // fetch might return status 0 for aborted
+        console.warn('Frontend: /api/spin request aborted, retrying...');
+        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 1000); // Более быстрый повтор после AbortError
         return null;
       }
 
@@ -417,7 +420,7 @@ function waitAndSpin(key, attempt) {
       if (response.status === 402) {
         console.log('Frontend: /api/spin returned 402 (payment not confirmed yet), retrying...');
         setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750);
-        return null;
+        return null; // Важно, чтобы дальше не шло
       }
 
       // Если пришел любой другой неуспешный статус (например 500)
