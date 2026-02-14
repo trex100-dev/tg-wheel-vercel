@@ -525,19 +525,31 @@ var formError = document.getElementById('form-error');
 var submitBtn = document.getElementById('modal-submit-btn');
 var currentWithdrawItem = null;
 
+var modalPrizeIconEl = document.getElementById('modal-prize-icon');
+var modalPrizeNameEl = document.getElementById('modal-prize-name');
+var modalPrizeRarityEl = document.getElementById('modal-prize-rarity'); // Этот элемент тоже проверять, даже если не используем
+
 function openWithdrawModal(item) {
+  // --- ДОБАВЛЕННЫЕ ПРОВЕРКИ ---
+  if (!withdrawModal) { console.error("Frontend ERROR: withdrawModal element not found!"); alert('Ошибка: Модальное окно вывода не найдено (ID #withdraw-modal).'); return; }
+  if (!modalPrizeIconEl) { console.error("Frontend ERROR: modalPrizeIconEl element not found!"); alert('Ошибка: Иконка приза в модалке вывода не найдена (ID #modal-prize-icon).'); return; }
+  if (!modalPrizeNameEl) { console.error("Frontend ERROR: modalPrizeNameEl element not found!"); alert('Ошибка: Название приза в модалке вывода не найдено (ID #modal-prize-name).'); return; }
+  if (!withdrawInput) { console.error("Frontend ERROR: withdrawInput element not found!"); alert('Ошибка: Поле ввода юзернейма не найдено (ID #withdraw-username).'); return; }
+  if (!formError) { console.error("Frontend ERROR: formError element not found!"); alert('Ошибка: Блок ошибки формы не найден (ID #form-error).'); return; }
+  if (!submitBtn) { console.error("Frontend ERROR: submitBtn element not found!"); alert('Ошибка: Кнопка отправки в модалке не найдена (ID #modal-submit-btn).'); return; }
+  // --- КОНЕЦ ДОБАВЛЕННЫХ ПРОВЕРОК ---
+
+
   currentWithdrawItem = item;
   var pd = findPrize(item.id);
-  var iconEl = document.getElementById('modal-prize-icon');
 
-  if (pd && pd.image) iconEl.innerHTML = '<img src="' + pd.image + '" alt="">';
-  else iconEl.textContent = '🎁';
+  if (pd && pd.image) modalPrizeIconEl.innerHTML = '<img src="' + pd.image + '" alt="">';
+  else modalPrizeIconEl.textContent = '🎁';
 
-  document.getElementById('modal-prize-name').textContent = item.name;
+  modalPrizeNameEl.textContent = item.name;
 
   // Если был элемент для редкости, он удален или не используется
-  // var rarityEl = document.getElementById('modal-prize-rarity');
-  // if (rarityEl) { rarityEl.textContent = ''; }
+  if (modalPrizeRarityEl) { modalPrizeRarityEl.textContent = ''; } // Очищаем текст
 
   withdrawInput.value = tgUsername;
   formError.classList.add('hidden');
@@ -674,8 +686,10 @@ function loadInventory() {
 
         if (status === 'inventory') {
           var btn = el.querySelector('.withdraw-btn');
+          if (!btn) { console.error("Frontend ERROR: Withdraw button not found for item:", item); continue; }
           btn._itemData = item;
           btn.addEventListener('click', function() {
+            console.log('Frontend: Withdraw button clicked, opening modal for item:', this._itemData);
             openWithdrawModal(this._itemData);
           });
         }
