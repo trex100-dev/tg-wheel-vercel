@@ -358,7 +358,7 @@ body {
   to { transform: scale(1); opacity: 1; }
 }
 
-.result-img-container { /* Переименовано */
+.result-img-container { /* Переименован с gif на img */
   width: 130px;
   height: 130px;
   margin: 0 auto 16px;
@@ -372,8 +372,9 @@ body {
   height: 130px;
   object-fit: contain;
   background: transparent;
-  mix-blend-mode: screen;
+  /* mix-blend-mode: screen; */ /* Удалено, если PNG с прозрачным фоном */
 }
+
 .result-label {
   font-size: 12px;
   text-transform: uppercase;
@@ -620,7 +621,7 @@ body {
 }
 .success-toast-btn:active { transform: scale(0.97); }
 
-/* Inventory width: 130px; */
+/* Inventory */
 .inventory-list { display: flex; flex-direction: column; gap: 8px; }
 .empty-text { text-align: center; color: var(--text-dim); padding: 50px 0; font-size: 15px; }
 
