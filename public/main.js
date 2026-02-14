@@ -54,7 +54,7 @@ if (tg) {
   }
 }
 
-// ================= Config + prizes =================
+// ================= Config + prizes ================= const timeoutId = 
 // Порядок = порядок секторов, должен совпадать с wheelSectors на сервере
 var PRIZES = [
   { id:'prize_1', name:'Медведь', image:'/img/bearstab.png', color:'#27272a' },
@@ -380,13 +380,13 @@ spinBtn.addEventListener('click', function() {
 
 function waitAndSpin(key, attempt) {
   // Увеличиваем попытки и даём больше времени на обработку оплаты Telegram
-  if (attempt > 40) { // Было 25, теперь 40
+  if (attempt > 60) { // Было 25, теперь 40
     alert('Платёж не подтверждён. Попробуйте еще раз.');
     resetSpinBtn();
     return;
   }
 
-  // Добавляем начальную задержку 1.5 секунды перед первым запросом
+  // Добавляем начальную задержку 1.5 секунды перед первым запросом if (attempt > 40)
   // (только если это первая попытка)
   if (attempt === 0) {
     setTimeout(function() { waitAndSpin(key, attempt + 1); }, 1500);
@@ -395,7 +395,7 @@ function waitAndSpin(key, attempt) {
 
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // Таймаут 10 секунд на один запрос
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // Таймаут 10 секунд на один запрос
 
   fetch('/api/spin', {
     method: 'POST',
