@@ -57,12 +57,12 @@ if (tg) {
 // ================= Config + prizes =================
 // Порядок = порядок секторов, должен совпадать с wheelSectors на сервере
 var PRIZES = [
-  { id:'prize_1', name:'Медведь', image:'/img/bearstab.png', color:'#27272a' },
-  { id:'prize_2', name:'Роза',    image:'/img/rosestab.png', color:'#292524' },
-  { id:'prize_3', name:'Леденец', image:'/img/lolstab.png', color:'#172554' },
-  { id:'prize_4', name:'Сига',    image:'/img/sistab.png', color:'#2e1065' },
-  { id:'prize_5', name:'Папаха',  image:'/img/buttonstab.png', color:'#3a2600' },
-  { id:'prize_6', name:'Кнопка',  image:'/img/papahastab.png', color:'#1f2937' }
+  { id:'prize_1', name:'Медведь', image:'/img/prize1.png', color:'#27272a' },
+  { id:'prize_2', name:'Роза',    image:'/img/prize2.png', color:'#292524' },
+  { id:'prize_3', name:'Леденец', image:'/img/prize3.png', color:'#172554' },
+  { id:'prize_4', name:'Сига',    image:'/img/prize4.png', color:'#2e1065' },
+  { id:'prize_5', name:'Папаха',  image:'/img/prize5.png', color:'#3a2600' },
+  { id:'prize_6', name:'Кнопка',  image:'/img/prize6.png', color:'#1f2937' }
 ];
 
 var NUM = PRIZES.length;
@@ -361,7 +361,7 @@ spinBtn.addEventListener('click', function() {
     .then(function(data){
       if (!data.invoiceUrl) throw new Error('No invoiceUrl');
       currentSpinKey = data.spinKey;
-
+      console.log('Frontend: SpinKey generated:', currentSpinKey); // ДОБАВЛЕНО ЛОГ
       tg.openInvoice(data.invoiceUrl, function(status) {
         if (status === 'paid') {
           spinBtn.querySelector('.spin-btn-text').textContent = '🌀 Крутится...';
@@ -405,7 +405,7 @@ function waitAndSpin(key, attempt) {
       return r.json();
     })
     .then(function(data){
-      if (!data) return;
+      if (!data) return; // если пришла 402, data будет null
       return animateSpin(data.segmentIndex).then(function(){ return data; });
     })
     .then(function(data){

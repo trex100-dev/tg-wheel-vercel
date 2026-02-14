@@ -14,6 +14,7 @@ export default async function handler(req, res) {
   try {
     // 1) pre_checkout_query
     if (update.pre_checkout_query) {
+      // console.log('TG UPDATE: pre_checkout_query'); // Отладочный лог
       await tg('answerPreCheckoutQuery', {
         pre_checkout_query_id: update.pre_checkout_query.id,
         ok: true
@@ -23,12 +24,14 @@ export default async function handler(req, res) {
 
     // 2) successful_payment
     if (update.message && update.message.successful_payment) {
+      // console.log('TG UPDATE: successful_payment'); // Отладочный лог
       const sp = update.message.successful_payment;
-      const payload = sp.invoice_payload;
+      const payload = sp.invoice_payload; // spin:userId:timestamp
       const parts = String(payload || '').split(':');
 
       if (parts[0] === 'spin' && parts[1]) {
         const userId = String(parts[1]);
+        // console.log('API TG: Processing successful payment for spinKey:', payload); // Отладочный лог
         await ensureUser(userId);
 
         // idempotent insert (если уже вставлено — не считаем повторно)
@@ -67,6 +70,7 @@ export default async function handler(req, res) {
 
     // 3) callback_query (кнопки админа)
     if (update.callback_query) {
+      // console.log('TG UPDATE: callback_query', update.callback_query.data); // Отладочный лог
       const cb = update.callback_query;
       const data = String(cb.data || '');
       const parts = data.split(':');
