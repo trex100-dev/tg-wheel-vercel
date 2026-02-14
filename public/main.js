@@ -54,7 +54,7 @@ if (tg) {
   }
 }
 
-// ================= Config + prizes ================= const timeoutId = 
+// ================= Config + prizes =================
 // Порядок = порядок секторов, должен совпадать с wheelSectors на сервере
 var PRIZES = [
   { id:'prize_1', name:'Медведь', image:'/img/bearstab.png', color:'#27272a' },
@@ -361,7 +361,7 @@ spinBtn.addEventListener('click', function() {
     .then(function(data){
       if (!data.invoiceUrl) throw new Error('No invoiceUrl');
       currentSpinKey = data.spinKey;
-      console.log('Frontend: SpinKey generated:', currentSpinKey); // ДОБАВЛЕНО ЛОГ
+      console.log('Frontend: SpinKey generated:', currentSpinKey);
       tg.openInvoice(data.invoiceUrl, function(status) {
         if (status === 'paid') {
           spinBtn.querySelector('.spin-btn-text').textContent = '🌀 Крутится...';
@@ -371,7 +371,7 @@ spinBtn.addEventListener('click', function() {
         }
       });
     })
-    .catch(function(err){ // Добавлен catch для ошибок create-invoice
+    .catch(function(err){
       console.error('Error creating invoice:', err);
       alert('Ошибка создания инвойса. Проверьте консоль.');
       resetSpinBtn();
@@ -379,62 +379,82 @@ spinBtn.addEventListener('click', function() {
 });
 
 function waitAndSpin(key, attempt) {
-  // Увеличиваем попытки и даём больше времени на обработку оплаты Telegram
-  if (attempt > 60) { // Было 25, теперь 40
+  if (attempt > 40) { // Увеличено до 40 попыток
     alert('Платёж не подтверждён. Попробуйте еще раз.');
     resetSpinBtn();
     return;
   }
 
-  // Добавляем начальную задержку 1.5 секунды перед первым запросом if (attempt > 40)
+  // Добавляем начальную задержку 1.5 секунды перед первым запросом
   // (только если это первая попытка)
   if (attempt === 0) {
+    console.log('Frontend: Initial delay before first /api/spin request...');
     setTimeout(function() { waitAndSpin(key, attempt + 1); }, 1500);
     return;
   }
 
+  console.log(`Frontend: Attempt ${attempt} to get spin result for key: ${key}`);
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000); // Таймаут 10 секунд на один запрос
+  const timeoutId = setTimeout(() => controller.abort(), 25000); // Таймаут 25 секунд на один запрос
 
   fetch('/api/spin', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId: userId, spinKey: key }),
-    signal: controller.signal // Привязываем AbortController к запросу
+    signal: controller.signal
   })
-    .then(function(r){
+    .then(function(response){
       clearTimeout(timeoutId); // Очищаем таймаут после получения ответа
-      if (r.status === 402) {
-        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750); // <-- БЫЛО 500, ТЕПЕРЬ 750ms
+
+      if (!response.ok && response.status === 0) { // fetch aborted (e.g. network lost or explicit abort)
+        console.warn('Frontend: /api/spin request aborted (status 0), retrying...');
+        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 1000); // Быстрый повтор после AbortError
         return null;
       }
-      if (!r.ok) { // Если не 402, но и не 200
-        console.error('API SPIN returned non-OK status:', r.status);
-        throw new Error('Server error: ' + r.status);
+
+      // Обработка 402 "not paid yet"
+      if (response.status === 402) {
+        console.log('Frontend: /api/spin returned 402 (payment not confirmed yet), retrying...');
+        setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750);
+        return null;
       }
-      return r.json();
+
+      // Если пришел любой другой неуспешный статус (например 500)
+      if (!response.ok) {
+        console.error('Frontend: /api/spin returned error status:', response.status);
+        alert('Ошибка сервера при прокрутке. Пожалуйста, попробуйте позже.');
+        resetSpinBtn(); // Выходим из цикла, т.к. возможно ошибка постоянная
+        throw new Error('Server error: ' + response.status); // Бросаем ошибку для дальнейшего catch
+      }
+
+      // Если успешно (200 OK)
+      return response.json();
     })
     .then(function(data){
-      if (!data) return; // если пришла 402, data будет null
+      if (!data) return; // Пропускаем, если data === null (был 402 или AbortError)
+
+      console.log('Frontend: /api/spin successful, received data:', data);
       return animateSpin(data.segmentIndex).then(function(){ return data; });
     })
     .then(function(data){
       if (!data) return;
+      console.log('Frontend: Spin animation finished, prize:', data.prize);
       try { tg.HapticFeedback.notificationOccurred('success'); } catch(e){}
       showResult(data.prize);
       resetSpinBtn();
     })
     .catch(function(err){
       clearTimeout(timeoutId); // Очищаем таймаут и при ошибке
+
       if (err.name === 'AbortError') {
-          console.warn('Request timed out, retrying...');
+          console.warn('Frontend: /api/spin request timed out or aborted, retrying...');
+          setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 1000); // Более быстрый повтор
       } else {
-          console.error('Fetch error for /api/spin:', err);
-          // Можно добавить alert() для пользователя, если ошибка критична
-          // alert('Произошла ошибка при получении результата. Попробуйте снова.');
+          console.error('Frontend: Unhandled fetch error for /api/spin:', err);
+          alert('Произошла непредвиденная ошибка. Пожалуйста, попробуйте снова.');
+          resetSpinBtn(); // Выходим из цикла, чтобы не спамить запросами при постоянной ошибке
       }
-      setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 750); // <-- БЫЛО 500, ТЕПЕРЬ 750ms
     });
 }
 
@@ -542,7 +562,8 @@ submitBtn.addEventListener('click', function() {
         submitBtn.textContent = '📤 Отправить заявку';
       }
     })
-    .catch(function(){
+    .catch(function(err){
+      console.error('Error on withdraw API call:', err);
       formError.textContent = 'Ошибка сети';
       formError.classList.remove('hidden');
       submitBtn.disabled = false;
@@ -635,8 +656,9 @@ function loadInventory() {
         }
       }
     })
-    .catch(function(){
-      list.innerHTML = '<p class="empty-text">Ошибка загрузки</p>';
+    .catch(function(err){
+      console.error('Error on inventory API call:', err);
+      list.innerHTML = '<p class="empty-text">Ошибка загрузки 😔</p>';
     });
 }
 
