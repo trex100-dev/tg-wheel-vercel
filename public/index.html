@@ -52,14 +52,17 @@
         <div id="prizes-list" class="prizes-list"></div>
       </div>
 
-      <!-- Попап приза (гифка) -->
+      <!-- Попап приза -->
       <div id="result-popup" class="result-popup hidden">
         <div class="popup-overlay"></div>
         <div class="result-content">
-          <div class="result-img-container" id="result-img-container">
+          <!-- ID контейнера для изображения приза -->
+          <div id="result-img-container" class="result-img-container"></div> 
           <div class="result-label">Твой приз</div>
-          <div class="result-name" id="result-name"></div>
-          <button class="result-close" id="result-close">Забрать</button>
+          <!-- ID для названия приза -->
+          <div id="result-name" class="result-name"></div> 
+          <!-- ID для кнопки закрытия -->
+          <button id="result-close" class="result-close">Забрать</button> 
         </div>
       </div>
     </div>
@@ -81,8 +84,8 @@
         </div>
 
         <div class="modal-prize-preview">
-          <span class="modal-prize-icon" id="modal-prize-icon"></span>
-          <div class="modal-prize-name" id="modal-prize-name"></div>
+          <span id="modal-prize-icon" class="modal-prize-icon"></span>
+          <div id="modal-prize-name" class="modal-prize-name"></div>
         </div>
 
         <div class="modal-form">
@@ -101,14 +104,14 @@
             />
           </div>
           <div class="form-hint">Мы свяжемся с тобой для передачи приза</div>
-          <div class="form-error hidden" id="form-error">Введи свой юзернейм</div>
+          <div id="form-error" class="form-error hidden">Введи свой юзернейм</div>
         </div>
 
-        <button class="modal-submit-btn" id="modal-submit-btn">📤 Отправить заявку</button>
+        <button id="modal-submit-btn" class="modal-submit-btn">📤 Отправить заявку</button>
       </div>
     </div>
 
-    <!-- Уведомление успеха --> 
+    <!-- Уведомление успеха -->
     <div id="success-toast" class="success-toast hidden">
       <div class="popup-overlay" id="success-overlay"></div>
       <div class="success-toast-content">
@@ -119,9 +122,9 @@
           </svg>
         </div>
         <div class="success-toast-title">Вывод создан!</div>
-        <div class="success-toast-text" id="success-toast-text">Приз скоро поступит на ваш аккаунт. Ожидайте!</div>
-        <div class="success-toast-prize" id="success-toast-prize"></div>
-        <button class="success-toast-btn" id="success-toast-btn">Отлично!</button>
+        <div id="success-toast-text" class="success-toast-text">Приз скоро поступит на ваш аккаунт. Ожидайте!</div>
+        <div id="success-toast-prize" class="success-toast-prize"></div>
+        <button id="success-toast-btn" class="success-toast-btn">Отлично!</button>
       </div>
     </div>
   </div>

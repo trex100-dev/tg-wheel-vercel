@@ -57,12 +57,12 @@ if (tg) {
 // ================= Config + prizes =================
 // Порядок = порядок секторов, должен совпадать с wheelSectors на сервере
 var PRIZES = [
-  { id:'prize_1', name:'Медведь', image:'/img/bearstab.png', color:'#27272a' },
-  { id:'prize_2', name:'Роза',    image:'/img/rosestab.png', color:'#292524' },
-  { id:'prize_3', name:'Леденец', image:'/img/lolstab.png', color:'#172554' },
-  { id:'prize_4', name:'Сига',    image:'/img/sistab.png', color:'#2e1065' },
-  { id:'prize_5', name:'Папаха',  image:'/img/buttonstab.png', color:'#3a2600' },
-  { id:'prize_6', name:'Кнопка',  image:'/img/papahastab.png', color:'#1f2937' }
+  { id:'prize_1', name:'Медведь', image:'/img/prize1.png', color:'#27272a' },
+  { id:'prize_2', name:'Роза',    image:'/img/prize2.png', color:'#292524' },
+  { id:'prize_3', name:'Леденец', image:'/img/prize3.png', color:'#172554' },
+  { id:'prize_4', name:'Сига',    image:'/img/prize4.png', color:'#2e1065' },
+  { id:'prize_5', name:'Папаха',  image:'/img/prize5.png', color:'#3a2600' },
+  { id:'prize_6', name:'Кнопка',  image:'/img/prize6.png', color:'#1f2937' }
 ];
 
 var NUM = PRIZES.length;
@@ -387,11 +387,11 @@ function waitAndSpin(key, attempt) {
     return;
   }
 
-  // Начальная задержка перед первым запросом /api/spin
-  // Даем бэкенду время обработать successful_payment
+  // Добавляем начальную задержку 1.5 секунды перед первым запросом
+  // (только если это первая попытка)
   if (attempt === 0) {
     console.log('Frontend: Initial delay before first /api/spin request...');
-    setTimeout(function() { waitAndSpin(key, attempt + 1); }, 2000); // Задержка 2 секунды
+    setTimeout(function() { waitAndSpin(key, attempt + 1); }, 1500);
     return;
   }
 
@@ -409,9 +409,9 @@ function waitAndSpin(key, attempt) {
     .then(function(response){
       clearTimeout(timeoutId); // Очищаем таймаут после получения ответа
 
-      // Если запрос был отменен (например, из-за таймаута на fetch)
+      // Если запрос был отменен (e.g. сеть потеряна или явный abort)
       if (!response.ok && response.status === 0) { // fetch might return status 0 for aborted
-        console.warn('Frontend: /api/spin request aborted, retrying...');
+        console.warn('Frontend: /api/spin request aborted (status 0), retrying...');
         setTimeout(function(){ waitAndSpin(key, attempt + 1); }, 1000); // Более быстрый повтор после AbortError
         return null;
       }
@@ -471,19 +471,37 @@ function resetSpinBtn() {
 
 // ================= Result popup =================
 function showResult(prize) {
-  var gc = document.getElementById('result-img-container'); // Название контейнера оставим, просто будет PNG
-  var pd = findPrize(prize.id);
+  var popup = document.getElementById('result-popup');
+  var gc = document.getElementById('result-img-container'); // Название контейнера
+  var nameEl = document.getElementById('result-name');
+  var closeBtn = document.getElementById('result-close');
 
-  if (pd && pd.image) gc.innerHTML = '<img src="' + pd.image + '" alt="">';
-  else gc.innerHTML = '🎁';
+  // --- ДОБАВЛЕННЫЕ ПРОВЕРКИ ---
+  if (!popup) { console.error("Frontend ERROR: Element with ID 'result-popup' not found!"); alert('Ошибка: Базовый попап не найден.'); return; }
+  if (!gc) { console.error("Frontend ERROR: Element with ID 'result-img-container' not found!"); alert('Ошибка: Контейнер картинки не найден.'); return; }
+  if (!nameEl) { console.error("Frontend ERROR: Element with ID 'result-name' not found!"); alert('Ошибка: Элемент названия приза не найден.'); return; }
+  if (!closeBtn) { console.error("Frontend ERROR: Element with ID 'result-close' not found!"); alert('Ошибка: Кнопка закрытия не найдена.'); return; }
+  // --- КОНЕЦ ПРОВЕРОК ---
 
-  document.getElementById('result-name').textContent = prize.name;
-  document.getElementById('result-popup').classList.remove('hidden');
+  var pd = findPrize(prize.id); // Получаем данные приза из PRIZES массива
+
+  // Отображаем изображение
+  if (pd && pd.image) {
+    gc.innerHTML = '<img src="' + pd.image + '" alt="' + pd.name + '">';
+  } else {
+    // Фоллбэк, если image по какой-то причине нет
+    gc.innerHTML = '🎁';
+  }
+
+  nameEl.textContent = prize.name; // Устанавливаем название приза
+
+  popup.classList.remove('hidden'); // Показываем попап
 }
 
 document.getElementById('result-close').addEventListener('click', function() {
   document.getElementById('result-popup').classList.add('hidden');
-  document.getElementById('result-img-container').innerHTML = ''; // Очищаем контейнер
+  var gc = document.getElementById('result-img-container');
+  if (gc) gc.innerHTML = ''; // Очищаем контейнер, если найден
 });
 
 // ================= Tabs =================
