@@ -61,8 +61,8 @@ var PRIZES = [
   { id:'prize_2', name:'Роза',    image:'/img/rosestab.png', color:'#292524' },
   { id:'prize_3', name:'Леденец', image:'/img/lolstab.png', color:'#172554' },
   { id:'prize_4', name:'Сига',    image:'/img/sistab.png', color:'#2e1065' },
-  { id:'prize_5', name:'Папаха',  image:'/img/buttonstab.png', color:'#3a2600' },
-  { id:'prize_6', name:'Кнопка',  image:'/img/papahastab.png', color:'#1f2937' }
+  { id:'prize_5', name:'Папаха',  image:'/img/papahastab.png', color:'#3a2600' },
+  { id:'prize_6', name:'Кнопка',  image:'/img/buttonstab.png', color:'#1f2937' }
 ];
 
 var NUM = PRIZES.length;
